@@ -39,13 +39,15 @@
             </div>
         </nav>
     </header>
-    <main class="container">
-        {% block hero %}{% endblock %}
-        {% block content %}{% endblock %}
+    <main>
+        <div class="container">
+            {% block hero %}{% endblock %}
+            {% block content %}{% endblock %}
+        </div>
     </main>
     <footer>
         <div class="container">
-            <p class="footer-text">&copy; 2024 A/AISF Certification Study Tool. All rights reserved.</p>
+            <p>&copy; 2024 A/AISF Certification Study Tool. All rights reserved.</p>
         </div>
     </footer>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
