@@ -2,30 +2,55 @@
 
 {% block content %}
 <h1>Study Materials</h1>
+<div class="pdf-selector">
+    <label for="pdf-select">Choose a PDF:</label>
+    <select id="pdf-select">
+        <option value="">Select a PDF</option>
+        {% for pdf in pdfs %}
+        <option value="{{ pdf }}">{{ pdf }}</option>
+        {% endfor %}
+    </select>
+</div>
 <div id="pdf-viewer"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.9.359/pdf.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const url = '{{ url_for("static", filename="pdfs/sample_study_material.pdf") }}';
+    const pdfSelect = document.getElementById('pdf-select');
+    const pdfViewer = document.getElementById('pdf-viewer');
 
-    pdfjsLib.getDocument(url).promise.then(function(pdf) {
-        pdf.getPage(1).then(function(page) {
-            const scale = 1.5;
-            const viewport = page.getViewport({ scale: scale });
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
-            canvas.height = viewport.height;
-            canvas.width = viewport.width;
+    pdfSelect.addEventListener('change', function() {
+        const selectedPdf = this.value;
+        if (selectedPdf) {
+            const url = `/static/pdfs/${selectedPdf}`;
+            
+            // Clear previous PDF
+            pdfViewer.innerHTML = '';
 
-            const renderContext = {
-                canvasContext: context,
-                viewport: viewport
-            };
+            pdfjsLib.getDocument(url).promise.then(function(pdf) {
+                pdf.getPage(1).then(function(page) {
+                    const scale = 1.5;
+                    const viewport = page.getViewport({ scale: scale });
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
 
-            page.render(renderContext);
-            document.getElementById('pdf-viewer').appendChild(canvas);
-        });
+                    const renderContext = {
+                        canvasContext: context,
+                        viewport: viewport
+                    };
+
+                    page.render(renderContext);
+                    pdfViewer.appendChild(canvas);
+                });
+            }).catch(function(error) {
+                console.error('Error loading PDF:', error);
+                pdfViewer.innerHTML = '<p>Error loading PDF. Please try again later.</p>';
+            });
+        } else {
+            pdfViewer.innerHTML = '';
+        }
     });
 });
 </script>

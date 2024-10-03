@@ -2,7 +2,17 @@
 
 {% block content %}
 <h1>Quiz</h1>
-<div id="quiz-container">
+<div id="pdf-selector">
+    <label for="pdf-select">Choose a PDF for the quiz:</label>
+    <select id="pdf-select">
+        <option value="">Select a PDF</option>
+        {% for pdf in pdfs %}
+        <option value="{{ pdf }}">{{ pdf }}</option>
+        {% endfor %}
+    </select>
+    <button id="generate-quiz">Generate Quiz</button>
+</div>
+<div id="quiz-container" style="display: none;">
     <div id="question-container"></div>
     <button id="submit-answer">Submit Answer</button>
     <button id="next-question" style="display: none;">Next Question</button>
@@ -18,24 +28,35 @@ let currentQuestionIndex = 0;
 let score = 0;
 
 document.addEventListener('DOMContentLoaded', function() {
-    fetchQuizQuestions();
+    const generateQuizButton = document.getElementById('generate-quiz');
+    generateQuizButton.addEventListener('click', fetchQuizQuestions);
 
     document.getElementById('submit-answer').addEventListener('click', submitAnswer);
     document.getElementById('next-question').addEventListener('click', showNextQuestion);
 });
 
 function fetchQuizQuestions() {
+    const selectedPdf = document.getElementById('pdf-select').value;
+    if (!selectedPdf) {
+        alert('Please select a PDF first.');
+        return;
+    }
+
     fetch('/generate_quiz', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ content: 'A/AISF certification topics' }),
+        body: JSON.stringify({ content: selectedPdf }),
     })
     .then(response => response.json())
     .then(data => {
         questions = data.questions;
+        currentQuestionIndex = 0;
+        score = 0;
         showQuestion(currentQuestionIndex);
+        document.getElementById('quiz-container').style.display = 'block';
+        document.getElementById('pdf-selector').style.display = 'none';
     });
 }
 

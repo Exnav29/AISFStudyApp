@@ -6,6 +6,7 @@ from models import User, Quiz, Exam
 from chat_request import generate_quiz_questions
 import json
 from datetime import datetime
+import os
 
 @app.route('/')
 def index():
@@ -51,12 +52,16 @@ def dashboard():
 @app.route('/pdf_viewer')
 @login_required
 def pdf_viewer():
-    return render_template('pdf_viewer.html')
+    pdf_dir = os.path.join(app.static_folder, 'pdfs')
+    pdfs = [f for f in os.listdir(pdf_dir) if f.endswith('.pdf')]
+    return render_template('pdf_viewer.html', pdfs=pdfs)
 
 @app.route('/quiz')
 @login_required
 def quiz():
-    return render_template('quiz.html')
+    pdf_dir = os.path.join(app.static_folder, 'pdfs')
+    pdfs = [f for f in os.listdir(pdf_dir) if f.endswith('.pdf')]
+    return render_template('quiz.html', pdfs=pdfs)
 
 @app.route('/exam')
 @login_required
@@ -66,8 +71,8 @@ def exam():
 @app.route('/generate_quiz', methods=['POST'])
 @login_required
 def generate_quiz():
-    content = request.json.get('content')
-    questions = generate_quiz_questions(content)
+    pdf_name = request.json.get('content')
+    questions = generate_quiz_questions(pdf_name)
     return jsonify(json.loads(questions))
 
 @app.route('/submit_quiz', methods=['POST'])

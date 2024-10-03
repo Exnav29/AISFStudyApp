@@ -1,6 +1,34 @@
 {% extends "base.html" %}
 
+{% block hero %}
+<div class="hero">
+    <div class="hero-content">
+        <i class="fas fa-graduation-cap fa-5x"></i>
+        <h1>Welcome to A/AISF Certification Study Tool</h1>
+        <p>Prepare for your certification with our interactive study materials, AI-generated quizzes, and timed exams.</p>
+    </div>
+</div>
+{% endblock %}
+
 {% block content %}
-<h1>Welcome to A/AISF Certification Study Tool</h1>
-<p>Prepare for your certification with our interactive study materials, AI-generated quizzes, and timed exams.</p>
+<section class="features">
+    <h2>Key Features</h2>
+    <div class="feature-grid">
+        <div class="feature">
+            <i class="fas fa-book fa-3x"></i>
+            <h3>Comprehensive Study Materials</h3>
+            <p>Access a wide range of curated content to help you master A/AISF concepts.</p>
+        </div>
+        <div class="feature">
+            <i class="fas fa-question-circle fa-3x"></i>
+            <h3>AI-Generated Quizzes</h3>
+            <p>Test your knowledge with dynamically created quizzes tailored to your progress.</p>
+        </div>
+        <div class="feature">
+            <i class="fas fa-clock fa-3x"></i>
+            <h3>Timed Exams</h3>
+            <p>Simulate the real certification experience with our timed exam mode.</p>
+        </div>
+    </div>
+</section>
 {% endblock %}
