@@ -17,7 +17,19 @@ def generate_quiz_questions(pdf_name: str, num_questions: int = 5) -> list:
     pdf_path = os.path.join('static', 'pdfs', pdf_name)
     content = extract_pdf_content(pdf_path)
     
-    prompt = f"Generate {num_questions} quiz questions based on the following content from {pdf_name}. Include multiple-choice, true/false, and fill-in-the-blank questions. Format the response as a JSON array of question objects, each with 'question', 'type', 'options' (for multiple-choice), and 'answer' fields. Content: {content[:4000]}"  # Limiting content to 4000 characters to avoid token limit
+    prompt = f"""Generate {num_questions} quiz questions based on the following content from {pdf_name}. 
+    Include a mix of the following question types:
+    1. Multiple-choice
+    2. True/false
+    3. Fill-in-the-blank
+    4. Matching
+    5. Ordering
+    6. Short answer
+    
+    Format the response as a JSON array of question objects, each with 'question', 'type', 'options' (if applicable), and 'answer' fields. 
+    For matching and ordering questions, include 'items' and 'correct_order' fields.
+    
+    Content: {content[:4000]}"""  # Limiting content to 4000 characters to avoid token limit
 
     response = openai_client.chat.completions.create(
         model="gpt-4o",

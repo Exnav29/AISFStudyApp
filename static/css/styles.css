@@ -215,6 +215,21 @@ button:hover {
     margin-bottom: 0.5rem;
 }
 
+.feature-link {
+    display: inline-block;
+    background-color: var(--primary-color);
+    color: #fff;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    text-decoration: none;
+    margin-top: 1rem;
+    transition: background-color 0.3s ease;
+}
+
+.feature-link:hover {
+    background-color: var(--secondary-color);
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
     nav ul {

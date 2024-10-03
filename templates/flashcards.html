@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Flashcards</h1>
+<div id="flashcard-container">
+    <div id="flashcard">
+        <div id="front"></div>
+        <div id="back" style="display: none;"></div>
+    </div>
+    <button id="flip-card">Flip Card</button>
+    <div id="performance-buttons" style="display: none;">
+        <button onclick="updatePerformance(0.0)">Very Hard</button>
+        <button onclick="updatePerformance(0.3)">Hard</button>
+        <button onclick="updatePerformance(0.5)">Medium</button>
+        <button onclick="updatePerformance(0.7)">Easy</button>
+        <button onclick="updatePerformance(1.0)">Very Easy</button>
+    </div>
+</div>
+<div id="add-flashcard">
+    <h2>Add New Flashcard</h2>
+    <input type="text" id="front-input" placeholder="Front of card">
+    <textarea id="back-input" placeholder="Back of card"></textarea>
+    <button id="add-card-button">Add Card</button>
+</div>
+
+<script>
+let flashcards = [];
+let currentCardIndex = 0;
+
+function loadFlashcards() {
+    fetch('/get_flashcards')
+        .then(response => response.json())
+        .then(data => {
+            flashcards = data;
+            if (flashcards.length > 0) {
+                showCard(currentCardIndex);
+            }
+        });
+}
+
+function showCard(index) {
+    const card = flashcards[index];
+    document.getElementById('front').textContent = card.front;
+    document.getElementById('back').textContent = card.back;
+    document.getElementById('back').style.display = 'none';
+    document.getElementById('performance-buttons').style.display = 'none';
+}
+
+function flipCard() {
+    const front = document.getElementById('front');
+    const back = document.getElementById('back');
+    if (front.style.display !== 'none') {
+        front.style.display = 'none';
+        back.style.display = 'block';
+        document.getElementById('performance-buttons').style.display = 'block';
+    } else {
+        front.style.display = 'block';
+        back.style.display = 'none';
+        document.getElementById('performance-buttons').style.display = 'none';
+    }
+}
+
+function updatePerformance(performance) {
+    const card = flashcards[currentCardIndex];
+    fetch('/update_flashcard', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            id: card.id,
+            performance: performance
+        }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            currentCardIndex = (currentCardIndex + 1) % flashcards.length;
+            showCard(currentCardIndex);
+        }
+    });
+}
+
+function addFlashcard() {
+    const front = document.getElementById('front-input').value;
+    const back = document.getElementById('back-input').value;
+    if (front && back) {
+        fetch('/add_flashcard', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                front: front,
+                back: back
+            }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('front-input').value = '';
+                document.getElementById('back-input').value = '';
+                loadFlashcards();
+            }
+        });
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadFlashcards();
+    document.getElementById('flip-card').addEventListener('click', flipCard);
+    document.getElementById('add-card-button').addEventListener('click', addFlashcard);
+});
+</script>
+{% endblock %}

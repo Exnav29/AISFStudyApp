@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Sorting Exercises</h1>
+<div id="sorting-container">
+    <div id="current-exercise"></div>
+    <button id="submit-sorting">Submit Answer</button>
+    <button id="next-exercise" style="display: none;">Next Exercise</button>
+</div>
+<div id="add-sorting-exercise">
+    <h2>Add New Sorting Exercise</h2>
+    <input type="text" id="question-input" placeholder="Enter the question">
+    <div id="items-container">
+        <input type="text" class="item-input" placeholder="Enter an item">
+    </div>
+    <button id="add-item">Add Item</button>
+    <button id="add-exercise-button">Add Exercise</button>
+</div>
+
+<script>
+let sortingExercises = [];
+let currentExerciseIndex = 0;
+
+function loadSortingExercises() {
+    fetch('/get_sorting_exercises')
+        .then(response => response.json())
+        .then(data => {
+            sortingExercises = data;
+            if (sortingExercises.length > 0) {
+                showExercise(currentExerciseIndex);
+            }
+        });
+}
+
+function showExercise(index) {
+    const exercise = sortingExercises[index];
+    const container = document.getElementById('current-exercise');
+    container.innerHTML = `
+        <h3>${exercise.question}</h3>
+        <div id="sortable-items">
+            ${exercise.items.map((item, i) => `
+                <div class="sortable-item" draggable="true" data-index="${i}">${item}</div>
+            `).join('')}
+        </div>
+    `;
+    setupDragAndDrop();
+}
+
+function setupDragAndDrop() {
+    const items = document.querySelectorAll('.sortable-item');
+    const container = document.getElementById('sortable-items');
+
+    items.forEach(item => {
+        item.addEventListener('dragstart', dragStart);
+        item.addEventListener('dragover', dragOver);
+        item.addEventListener('drop', drop);
+        item.addEventListener('dragenter', dragEnter);
+        item.addEventListener('dragleave', dragLeave);
+    });
+}
+
+function dragStart(e) {
+    e.dataTransfer.setData('text/plain', e.target.dataset.index);
+    setTimeout(() => e.target.classList.add('dragging'), 0);
+}
+
+function dragOver(e) {
+    e.preventDefault();
+}
+
+function dragEnter(e) {
+    e.preventDefault();
+    e.target.classList.add('drag-over');
+}
+
+function dragLeave(e) {
+    e.target.classList.remove('drag-over');
+}
+
+function drop(e) {
+    e.preventDefault();
+    const draggedItemIndex = e.dataTransfer.getData('text');
+    const draggedItem = document.querySelector(`.sortable-item[data-index="${draggedItemIndex}"]`);
+    const dropTarget = e.target.closest('.sortable-item');
+
+    if (dropTarget && draggedItem !== dropTarget) {
+        const container = document.getElementById('sortable-items');
+        const items = Array.from(container.children);
+        const fromIndex = items.indexOf(draggedItem);
+        const toIndex = items.indexOf(dropTarget);
+
+        if (fromIndex < toIndex) {
+            container.insertBefore(draggedItem, dropTarget.nextSibling);
+        } else {
+            container.insertBefore(draggedItem, dropTarget);
+        }
+    }
+
+    document.querySelectorAll('.sortable-item').forEach(item => {
+        item.classList.remove('dragging', 'drag-over');
+    });
+}
+
+function submitSortingExercise() {
+    const exercise = sortingExercises[currentExerciseIndex];
+    const currentOrder = Array.from(document.querySelectorAll('.sortable-item')).map(item => parseInt(item.dataset.index));
+    const correct = JSON.stringify(currentOrder) === JSON.stringify(exercise.correct_order);
+    const performance = correct ? 1 : 0;
+
+    fetch('/update_sorting_exercise', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            id: exercise.id,
+            performance: performance
+        }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('submit-sorting').style.display = 'none';
+            document.getElementById('next-exercise').style.display = 'block';
+        }
+    });
+}
+
+function showNextExercise() {
+    currentExerciseIndex = (currentExerciseIndex + 1) % sortingExercises.length;
+    showExercise(currentExerciseIndex);
+    document.getElementById('submit-sorting').style.display = 'block';
+    document.getElementById('next-exercise').style.display = 'none';
+}
+
+function addSortingExercise() {
+    const question = document.getElementById('question-input').value;
+    const itemInputs = document.querySelectorAll('.item-input');
+    const items = Array.from(itemInputs).map(input => input.value).filter(item => item.trim() !== '');
+    const correct_order = Array.from(Array(items.length).keys());
+
+    if (question && items.length > 1) {
+        fetch('/add_sorting_exercise', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                question: question,
+                items: items,
+                correct_order: correct_order
+            }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('question-input').value = '';
+                document.getElementById('items-container').innerHTML = `
+                    <input type="text" class="item-input" placeholder="Enter an item">
+                `;
+                loadSortingExercises();
+            }
+        });
+    }
+}
+
+function addItemInput() {
+    const itemsContainer = document.getElementById('items-container');
+    const newItemInput = document.createElement('input');
+    newItemInput.type = 'text';
+    newItemInput.className = 'item-input';
+    newItemInput.placeholder = 'Enter an item';
+    itemsContainer.appendChild(newItemInput);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadSortingExercises();
+    document.getElementById('submit-sorting').addEventListener('click', submitSortingExercise);
+    document.getElementById('next-exercise').addEventListener('click', showNextExercise);
+    document.getElementById('add-exercise-button').addEventListener('click', addSortingExercise);
+    document.getElementById('add-item').addEventListener('click', addItemInput);
+});
+</script>
+
+<style>
+.sortable-item {
+    padding: 10px;
+    margin: 5px 0;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    cursor: move;
+}
+
+.sortable-item.dragging {
+    opacity: 0.5;
+}
+
+.sortable-item.drag-over {
+    border: 2px dashed #000;
+}
+</style>
+{% endblock %}

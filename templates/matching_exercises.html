@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Matching Exercises</h1>
+<div id="matching-container">
+    <div id="current-exercise"></div>
+    <button id="submit-matching">Submit Answer</button>
+    <button id="next-exercise" style="display: none;">Next Exercise</button>
+</div>
+<div id="add-matching-exercise">
+    <h2>Add New Matching Exercise</h2>
+    <input type="text" id="question-input" placeholder="Enter the question">
+    <div id="pairs-container">
+        <div class="pair-inputs">
+            <input type="text" class="left-item" placeholder="Left item">
+            <input type="text" class="right-item" placeholder="Right item">
+        </div>
+    </div>
+    <button id="add-pair">Add Pair</button>
+    <button id="add-exercise-button">Add Exercise</button>
+</div>
+
+<script>
+let matchingExercises = [];
+let currentExerciseIndex = 0;
+
+function loadMatchingExercises() {
+    fetch('/get_matching_exercises')
+        .then(response => response.json())
+        .then(data => {
+            matchingExercises = data;
+            if (matchingExercises.length > 0) {
+                showExercise(currentExerciseIndex);
+            }
+        });
+}
+
+function showExercise(index) {
+    const exercise = matchingExercises[index];
+    const container = document.getElementById('current-exercise');
+    container.innerHTML = `
+        <h3>${exercise.question}</h3>
+        <div class="left-items">
+            ${exercise.pairs.map((pair, i) => `
+                <div class="item" draggable="true" data-index="${i}">${pair.left}</div>
+            `).join('')}
+        </div>
+        <div class="right-items">
+            ${exercise.pairs.map((pair, i) => `
+                <div class="item-slot" data-index="${i}"></div>
+            `).join('')}
+        </div>
+    `;
+    setupDragAndDrop();
+}
+
+function setupDragAndDrop() {
+    const items = document.querySelectorAll('.item');
+    const slots = document.querySelectorAll('.item-slot');
+
+    items.forEach(item => {
+        item.addEventListener('dragstart', dragStart);
+    });
+
+    slots.forEach(slot => {
+        slot.addEventListener('dragover', dragOver);
+        slot.addEventListener('drop', drop);
+    });
+}
+
+function dragStart(e) {
+    e.dataTransfer.setData('text/plain', e.target.dataset.index);
+}
+
+function dragOver(e) {
+    e.preventDefault();
+}
+
+function drop(e) {
+    e.preventDefault();
+    const data = e.dataTransfer.getData('text');
+    const draggedItem = document.querySelector(`.item[data-index="${data}"]`);
+    e.target.appendChild(draggedItem);
+}
+
+function submitMatchingExercise() {
+    const exercise = matchingExercises[currentExerciseIndex];
+    const slots = document.querySelectorAll('.item-slot');
+    let correct = 0;
+    
+    slots.forEach((slot, index) => {
+        if (slot.firstChild && slot.firstChild.textContent === exercise.pairs[index].right) {
+            correct++;
+        }
+    });
+
+    const performance = correct / exercise.pairs.length;
+
+    fetch('/update_matching_exercise', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            id: exercise.id,
+            performance: performance
+        }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('submit-matching').style.display = 'none';
+            document.getElementById('next-exercise').style.display = 'block';
+        }
+    });
+}
+
+function showNextExercise() {
+    currentExerciseIndex = (currentExerciseIndex + 1) % matchingExercises.length;
+    showExercise(currentExerciseIndex);
+    document.getElementById('submit-matching').style.display = 'block';
+    document.getElementById('next-exercise').style.display = 'none';
+}
+
+function addMatchingExercise() {
+    const question = document.getElementById('question-input').value;
+    const pairInputs = document.querySelectorAll('.pair-inputs');
+    const pairs = Array.from(pairInputs).map(pair => ({
+        left: pair.querySelector('.left-item').value,
+        right: pair.querySelector('.right-item').value
+    }));
+
+    if (question && pairs.length > 0) {
+        fetch('/add_matching_exercise', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                question: question,
+                pairs: pairs
+            }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('question-input').value = '';
+                document.getElementById('pairs-container').innerHTML = `
+                    <div class="pair-inputs">
+                        <input type="text" class="left-item" placeholder="Left item">
+                        <input type="text" class="right-item" placeholder="Right item">
+                    </div>
+                `;
+                loadMatchingExercises();
+            }
+        });
+    }
+}
+
+function addPairInputs() {
+    const pairsContainer = document.getElementById('pairs-container');
+    const newPairInputs = document.createElement('div');
+    newPairInputs.className = 'pair-inputs';
+    newPairInputs.innerHTML = `
+        <input type="text" class="left-item" placeholder="Left item">
+        <input type="text" class="right-item" placeholder="Right item">
+    `;
+    pairsContainer.appendChild(newPairInputs);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadMatchingExercises();
+    document.getElementById('submit-matching').addEventListener('click', submitMatchingExercise);
+    document.getElementById('next-exercise').addEventListener('click', showNextExercise);
+    document.getElementById('add-exercise-button').addEventListener('click', addMatchingExercise);
+    document.getElementById('add-pair').addEventListener('click', addPairInputs);
+});
+</script>
+{% endblock %}

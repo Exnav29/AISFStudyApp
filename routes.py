@@ -2,7 +2,7 @@ from flask import render_template, redirect, url_for, request, jsonify
 from flask_login import login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash
 from app import app, db
-from models import User, Quiz, Exam
+from models import User, Quiz, Exam, LearningItem, Flashcard, MatchingExercise, SortingExercise, FillInTheBlankExercise
 from chat_request import generate_quiz_questions
 import json
 from datetime import datetime
@@ -100,3 +100,200 @@ def update_progress():
     current_user.progress = progress
     db.session.commit()
     return jsonify({'success': True})
+
+@app.route('/learning_items', methods=['GET'])
+@login_required
+def get_learning_items():
+    items = LearningItem.query.filter_by(user_id=current_user.id).all()
+    return jsonify([{
+        'id': item.id,
+        'content': item.content,
+        'difficulty': item.difficulty,
+        'next_review': item.next_review.isoformat()
+    } for item in items])
+
+@app.route('/add_learning_item', methods=['POST'])
+@login_required
+def add_learning_item():
+    content = request.json.get('content')
+    item = LearningItem(user_id=current_user.id, content=content)
+    db.session.add(item)
+    db.session.commit()
+    return jsonify({'success': True, 'id': item.id})
+
+@app.route('/update_learning_item', methods=['POST'])
+@login_required
+def update_learning_item():
+    item_id = request.json.get('id')
+    performance = request.json.get('performance')
+    item = LearningItem.query.get(item_id)
+    if item and item.user_id == current_user.id:
+        item.update_review_schedule(performance)
+        db.session.commit()
+        return jsonify({'success': True})
+    return jsonify({'success': False}), 404
+
+@app.route('/get_due_items', methods=['GET'])
+@login_required
+def get_due_items():
+    due_items = LearningItem.query.filter(
+        LearningItem.user_id == current_user.id,
+        LearningItem.next_review <= datetime.utcnow()
+    ).all()
+    return jsonify([{
+        'id': item.id,
+        'content': item.content,
+        'difficulty': item.difficulty
+    } for item in due_items])
+
+@app.route('/flashcards')
+@login_required
+def flashcards():
+    return render_template('flashcards.html')
+
+@app.route('/get_flashcards', methods=['GET'])
+@login_required
+def get_flashcards():
+    flashcards = Flashcard.query.filter_by(user_id=current_user.id).all()
+    return jsonify([{
+        'id': card.id,
+        'front': card.front,
+        'back': card.back,
+        'difficulty': card.difficulty
+    } for card in flashcards])
+
+@app.route('/add_flashcard', methods=['POST'])
+@login_required
+def add_flashcard():
+    front = request.json.get('front')
+    back = request.json.get('back')
+    flashcard = Flashcard(user_id=current_user.id, front=front, back=back)
+    db.session.add(flashcard)
+    db.session.commit()
+    return jsonify({'success': True, 'id': flashcard.id})
+
+@app.route('/update_flashcard', methods=['POST'])
+@login_required
+def update_flashcard():
+    card_id = request.json.get('id')
+    performance = request.json.get('performance')
+    card = Flashcard.query.get(card_id)
+    if card and card.user_id == current_user.id:
+        card.update_review_schedule(performance)
+        db.session.commit()
+        return jsonify({'success': True})
+    return jsonify({'success': False}), 404
+
+@app.route('/matching_exercises')
+@login_required
+def matching_exercises():
+    return render_template('matching_exercises.html')
+
+@app.route('/get_matching_exercises', methods=['GET'])
+@login_required
+def get_matching_exercises():
+    exercises = MatchingExercise.query.filter_by(user_id=current_user.id).all()
+    return jsonify([{
+        'id': exercise.id,
+        'question': exercise.question,
+        'pairs': exercise.pairs,
+        'difficulty': exercise.difficulty
+    } for exercise in exercises])
+
+@app.route('/add_matching_exercise', methods=['POST'])
+@login_required
+def add_matching_exercise():
+    question = request.json.get('question')
+    pairs = request.json.get('pairs')
+    exercise = MatchingExercise(user_id=current_user.id, question=question, pairs=pairs)
+    db.session.add(exercise)
+    db.session.commit()
+    return jsonify({'success': True, 'id': exercise.id})
+
+@app.route('/update_matching_exercise', methods=['POST'])
+@login_required
+def update_matching_exercise():
+    exercise_id = request.json.get('id')
+    performance = request.json.get('performance')
+    exercise = MatchingExercise.query.get(exercise_id)
+    if exercise and exercise.user_id == current_user.id:
+        exercise.update_difficulty(performance)
+        db.session.commit()
+        return jsonify({'success': True})
+    return jsonify({'success': False}), 404
+
+@app.route('/sorting_exercises')
+@login_required
+def sorting_exercises():
+    return render_template('sorting_exercises.html')
+
+@app.route('/get_sorting_exercises', methods=['GET'])
+@login_required
+def get_sorting_exercises():
+    exercises = SortingExercise.query.filter_by(user_id=current_user.id).all()
+    return jsonify([{
+        'id': exercise.id,
+        'question': exercise.question,
+        'items': exercise.items,
+        'difficulty': exercise.difficulty
+    } for exercise in exercises])
+
+@app.route('/add_sorting_exercise', methods=['POST'])
+@login_required
+def add_sorting_exercise():
+    question = request.json.get('question')
+    items = request.json.get('items')
+    correct_order = request.json.get('correct_order')
+    exercise = SortingExercise(user_id=current_user.id, question=question, items=items, correct_order=correct_order)
+    db.session.add(exercise)
+    db.session.commit()
+    return jsonify({'success': True, 'id': exercise.id})
+
+@app.route('/update_sorting_exercise', methods=['POST'])
+@login_required
+def update_sorting_exercise():
+    exercise_id = request.json.get('id')
+    performance = request.json.get('performance')
+    exercise = SortingExercise.query.get(exercise_id)
+    if exercise and exercise.user_id == current_user.id:
+        exercise.update_difficulty(performance)
+        db.session.commit()
+        return jsonify({'success': True})
+    return jsonify({'success': False}), 404
+
+@app.route('/fill_in_the_blank_exercises')
+@login_required
+def fill_in_the_blank_exercises():
+    return render_template('fill_in_the_blank.html')
+
+@app.route('/get_fill_in_the_blank_exercises', methods=['GET'])
+@login_required
+def get_fill_in_the_blank_exercises():
+    exercises = FillInTheBlankExercise.query.filter_by(user_id=current_user.id).all()
+    return jsonify([{
+        'id': exercise.id,
+        'question': exercise.question,
+        'difficulty': exercise.difficulty
+    } for exercise in exercises])
+
+@app.route('/add_fill_in_the_blank_exercise', methods=['POST'])
+@login_required
+def add_fill_in_the_blank_exercise():
+    question = request.json.get('question')
+    answer = request.json.get('answer')
+    exercise = FillInTheBlankExercise(user_id=current_user.id, question=question, answer=answer)
+    db.session.add(exercise)
+    db.session.commit()
+    return jsonify({'success': True, 'id': exercise.id})
+
+@app.route('/update_fill_in_the_blank_exercise', methods=['POST'])
+@login_required
+def update_fill_in_the_blank_exercise():
+    exercise_id = request.json.get('id')
+    performance = request.json.get('performance')
+    exercise = FillInTheBlankExercise.query.get(exercise_id)
+    if exercise and exercise.user_id == current_user.id:
+        exercise.update_difficulty(performance)
+        db.session.commit()
+        return jsonify({'success': True})
+    return jsonify({'success': False}), 404

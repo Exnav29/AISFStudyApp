@@ -18,16 +18,19 @@
             <i class="fas fa-book fa-3x"></i>
             <h3>Comprehensive Study Materials</h3>
             <p>Access a wide range of curated content to help you master A/AISF concepts.</p>
+            <a href="{{ url_for('pdf_viewer') }}" class="feature-link">Start Studying</a>
         </div>
         <div class="feature">
             <i class="fas fa-question-circle fa-3x"></i>
             <h3>AI-Generated Quizzes</h3>
             <p>Test your knowledge with dynamically created quizzes tailored to your progress.</p>
+            <a href="{{ url_for('quiz') }}" class="feature-link">Take a Quiz</a>
         </div>
         <div class="feature">
             <i class="fas fa-clock fa-3x"></i>
             <h3>Timed Exams</h3>
             <p>Simulate the real certification experience with our timed exam mode.</p>
+            <a href="{{ url_for('exam') }}" class="feature-link">Start an Exam</a>
         </div>
     </div>
 </section>

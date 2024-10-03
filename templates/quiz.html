@@ -70,20 +70,46 @@ function showQuestion(index) {
 }
 
 function getAnswerHTML(question) {
-    if (question.type === 'multiple-choice') {
-        return question.options.map((option, index) => `
-            <label>
-                <input type="radio" name="answer" value="${index}">
-                ${option}
-            </label>
-        `).join('');
-    } else if (question.type === 'true-false') {
-        return `
-            <label><input type="radio" name="answer" value="true"> True</label>
-            <label><input type="radio" name="answer" value="false"> False</label>
-        `;
-    } else if (question.type === 'fill-in-the-blank') {
-        return '<input type="text" name="answer">';
+    switch (question.type) {
+        case 'multiple-choice':
+            return question.options.map((option, index) => `
+                <label>
+                    <input type="radio" name="answer" value="${index}">
+                    ${option}
+                </label>
+            `).join('');
+        case 'true-false':
+            return `
+                <label><input type="radio" name="answer" value="true"> True</label>
+                <label><input type="radio" name="answer" value="false"> False</label>
+            `;
+        case 'fill-in-the-blank':
+            return '<input type="text" name="answer">';
+        case 'matching':
+            return `
+                <div class="matching-container">
+                    ${question.items.map((item, index) => `
+                        <div class="matching-item" draggable="true" data-index="${index}">${item}</div>
+                    `).join('')}
+                </div>
+                <div class="matching-slots">
+                    ${question.items.map((_, index) => `
+                        <div class="matching-slot" data-index="${index}"></div>
+                    `).join('')}
+                </div>
+            `;
+        case 'ordering':
+            return `
+                <div class="ordering-container">
+                    ${question.items.map((item, index) => `
+                        <div class="ordering-item" draggable="true" data-index="${index}">${item}</div>
+                    `).join('')}
+                </div>
+            `;
+        case 'short-answer':
+            return '<textarea name="answer" rows="4" cols="50"></textarea>';
+        default:
+            return '';
     }
 }
 
@@ -91,20 +117,46 @@ function submitAnswer() {
     const question = questions[currentQuestionIndex];
     let userAnswer;
     
-    if (question.type === 'multiple-choice') {
-        userAnswer = document.querySelector('input[name="answer"]:checked')?.value;
-    } else if (question.type === 'true-false') {
-        userAnswer = document.querySelector('input[name="answer"]:checked')?.value;
-    } else if (question.type === 'fill-in-the-blank') {
-        userAnswer = document.querySelector('input[name="answer"]').value;
+    switch (question.type) {
+        case 'multiple-choice':
+        case 'true-false':
+            userAnswer = document.querySelector('input[name="answer"]:checked')?.value;
+            break;
+        case 'fill-in-the-blank':
+        case 'short-answer':
+            userAnswer = document.querySelector('input[name="answer"], textarea[name="answer"]').value;
+            break;
+        case 'matching':
+            userAnswer = Array.from(document.querySelectorAll('.matching-slot')).map(slot => slot.textContent);
+            break;
+        case 'ordering':
+            userAnswer = Array.from(document.querySelectorAll('.ordering-item')).map(item => item.textContent);
+            break;
     }
 
-    if (userAnswer === question.answer) {
+    if (checkAnswer(question, userAnswer)) {
         score++;
     }
 
     document.getElementById('submit-answer').style.display = 'none';
     document.getElementById('next-question').style.display = 'block';
+}
+
+function checkAnswer(question, userAnswer) {
+    switch (question.type) {
+        case 'multiple-choice':
+            return parseInt(userAnswer) === question.answer;
+        case 'true-false':
+            return userAnswer === question.answer.toString();
+        case 'fill-in-the-blank':
+        case 'short-answer':
+            return userAnswer.toLowerCase() === question.answer.toLowerCase();
+        case 'matching':
+        case 'ordering':
+            return JSON.stringify(userAnswer) === JSON.stringify(question.correct_order);
+        default:
+            return false;
+    }
 }
 
 function showNextQuestion() {
@@ -144,5 +196,36 @@ function updateProgress(progress) {
         body: JSON.stringify({ progress: progress }),
     });
 }
+
+// Add drag and drop functionality for matching and ordering questions
+document.addEventListener('dragstart', function(event) {
+    event.dataTransfer.setData('text/plain', event.target.dataset.index);
+});
+
+document.addEventListener('dragover', function(event) {
+    event.preventDefault();
+});
+
+document.addEventListener('drop', function(event) {
+    event.preventDefault();
+    const sourceIndex = event.dataTransfer.getData('text');
+    const targetElement = event.target.closest('.matching-slot, .ordering-container');
+    
+    if (targetElement) {
+        if (targetElement.classList.contains('matching-slot')) {
+            const sourceElement = document.querySelector(`.matching-item[data-index="${sourceIndex}"]`);
+            targetElement.textContent = sourceElement.textContent;
+        } else if (targetElement.classList.contains('ordering-container')) {
+            const items = Array.from(targetElement.children);
+            const sourceElement = items[sourceIndex];
+            const targetIndex = items.indexOf(event.target.closest('.ordering-item'));
+            if (sourceIndex < targetIndex) {
+                targetElement.insertBefore(sourceElement, items[targetIndex].nextSibling);
+            } else {
+                targetElement.insertBefore(sourceElement, items[targetIndex]);
+            }
+        }
+    }
+});
 </script>
 {% endblock %}

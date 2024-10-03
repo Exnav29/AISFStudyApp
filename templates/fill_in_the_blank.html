@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Fill in the Blank Exercises</h1>
+<div id="fill-in-the-blank-container">
+    <div id="current-exercise"></div>
+    <input type="text" id="answer-input" placeholder="Your answer">
+    <button id="submit-answer">Submit Answer</button>
+    <button id="next-exercise" style="display: none;">Next Exercise</button>
+</div>
+<div id="add-fill-in-the-blank-exercise">
+    <h2>Add New Fill in the Blank Exercise</h2>
+    <textarea id="question-input" placeholder="Enter the question (use '_____' for the blank)"></textarea>
+    <input type="text" id="answer-input" placeholder="Correct answer">
+    <button id="add-exercise-button">Add Exercise</button>
+</div>
+
+<script>
+let fillInTheBlankExercises = [];
+let currentExerciseIndex = 0;
+
+function loadFillInTheBlankExercises() {
+    fetch('/get_fill_in_the_blank_exercises')
+        .then(response => response.json())
+        .then(data => {
+            fillInTheBlankExercises = data;
+            if (fillInTheBlankExercises.length > 0) {
+                showExercise(currentExerciseIndex);
+            }
+        });
+}
+
+function showExercise(index) {
+    const exercise = fillInTheBlankExercises[index];
+    const container = document.getElementById('current-exercise');
+    container.innerHTML = `
+        <h3>${exercise.question}</h3>
+    `;
+    document.getElementById('answer-input').value = '';
+    document.getElementById('submit-answer').style.display = 'inline-block';
+    document.getElementById('next-exercise').style.display = 'none';
+}
+
+function submitAnswer() {
+    const exercise = fillInTheBlankExercises[currentExerciseIndex];
+    const userAnswer = document.getElementById('answer-input').value.trim().toLowerCase();
+    const correctAnswer = exercise.answer.toLowerCase();
+    const performance = userAnswer === correctAnswer ? 1 : 0;
+
+    fetch('/update_fill_in_the_blank_exercise', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            id: exercise.id,
+            performance: performance
+        }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('submit-answer').style.display = 'none';
+            document.getElementById('next-exercise').style.display = 'inline-block';
+            const resultMessage = performance === 1 ? 'Correct!' : `Incorrect. The correct answer is: ${exercise.answer}`;
+            document.getElementById('current-exercise').innerHTML += `<p>${resultMessage}</p>`;
+        }
+    });
+}
+
+function showNextExercise() {
+    currentExerciseIndex = (currentExerciseIndex + 1) % fillInTheBlankExercises.length;
+    showExercise(currentExerciseIndex);
+}
+
+function addFillInTheBlankExercise() {
+    const question = document.getElementById('question-input').value;
+    const answer = document.getElementById('answer-input').value;
+
+    if (question && answer) {
+        fetch('/add_fill_in_the_blank_exercise', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                question: question,
+                answer: answer
+            }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('question-input').value = '';
+                document.getElementById('answer-input').value = '';
+                loadFillInTheBlankExercises();
+            }
+        });
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadFillInTheBlankExercises();
+    document.getElementById('submit-answer').addEventListener('click', submitAnswer);
+    document.getElementById('next-exercise').addEventListener('click', showNextExercise);
+    document.getElementById('add-exercise-button').addEventListener('click', addFillInTheBlankExercise);
+});
+</script>
+{% endblock %}

@@ -19,6 +19,11 @@
                         <li><a href="{{ url_for('pdf_viewer') }}">Study Materials</a></li>
                         <li><a href="{{ url_for('quiz') }}">Quiz</a></li>
                         <li><a href="{{ url_for('exam') }}">Exam</a></li>
+                        <li><a href="{{ url_for('spaced_repetition') }}">Spaced Repetition</a></li>
+                        <li><a href="{{ url_for('flashcards') }}">Flashcards</a></li>
+                        <li><a href="{{ url_for('matching_exercises') }}">Matching Exercises</a></li>
+                        <li><a href="{{ url_for('sorting_exercises') }}">Sorting Exercises</a></li>
+                        <li><a href="{{ url_for('fill_in_the_blank_exercises') }}">Fill in the Blank</a></li>
                         <li><a href="{{ url_for('logout') }}">Logout</a></li>
                     {% else %}
                         <li><a href="{{ url_for('login') }}">Login</a></li>

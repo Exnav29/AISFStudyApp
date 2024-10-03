@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Spaced Repetition Review</h1>
+<div id="review-container">
+    <div id="item-content"></div>
+    <div id="performance-buttons">
+        <button onclick="updatePerformance(0.0)">Very Hard</button>
+        <button onclick="updatePerformance(0.3)">Hard</button>
+        <button onclick="updatePerformance(0.5)">Medium</button>
+        <button onclick="updatePerformance(0.7)">Easy</button>
+        <button onclick="updatePerformance(1.0)">Very Easy</button>
+    </div>
+</div>
+<div id="review-complete" style="display: none;">
+    <h2>Review Complete</h2>
+    <p>You've reviewed all due items. Great job!</p>
+    <button onclick="location.reload()">Start New Session</button>
+</div>
+
+<script>
+let currentItems = [];
+let currentItemIndex = 0;
+
+function loadDueItems() {
+    fetch('/get_due_items')
+        .then(response => response.json())
+        .then(items => {
+            currentItems = items;
+            if (items.length > 0) {
+                showNextItem();
+            } else {
+                document.getElementById('review-container').style.display = 'none';
+                document.getElementById('review-complete').style.display = 'block';
+            }
+        });
+}
+
+function showNextItem() {
+    if (currentItemIndex < currentItems.length) {
+        const item = currentItems[currentItemIndex];
+        document.getElementById('item-content').textContent = item.content;
+    } else {
+        document.getElementById('review-container').style.display = 'none';
+        document.getElementById('review-complete').style.display = 'block';
+    }
+}
+
+function updatePerformance(performance) {
+    const item = currentItems[currentItemIndex];
+    fetch('/update_learning_item', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            id: item.id,
+            performance: performance
+        }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            currentItemIndex++;
+            showNextItem();
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', loadDueItems);
+</script>
+{% endblock %}
