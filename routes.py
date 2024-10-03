@@ -290,7 +290,11 @@ def generate_lesson_route():
         try:
             lesson_content = generate_lesson()
             return render_template('lesson.html', lesson_content=json.loads(lesson_content))
-        except Exception as e:
+        except FileNotFoundError as e:
             return render_template('generate_lesson.html', error=str(e))
+        except ValueError as e:
+            return render_template('generate_lesson.html', error=str(e))
+        except Exception as e:
+            return render_template('generate_lesson.html', error="An unexpected error occurred. Please try again later.")
     
     return render_template('generate_lesson.html')
