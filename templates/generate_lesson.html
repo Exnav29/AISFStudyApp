@@ -2,14 +2,10 @@
 
 {% block content %}
 <h1>Generate AI-Powered Lesson</h1>
+{% if error %}
+<p class="error">{{ error }}</p>
+{% endif %}
 <form method="POST">
-    <label for="pdf-select">Choose a PDF for lesson generation:</label>
-    <select id="pdf-select" name="pdf_name" required>
-        <option value="">Select a PDF</option>
-        {% for pdf in pdfs %}
-        <option value="{{ pdf }}">{{ pdf }}</option>
-        {% endfor %}
-    </select>
-    <button type="submit">Generate Lesson</button>
+    <button type="submit">Generate Comprehensive Lesson</button>
 </form>
 {% endblock %}

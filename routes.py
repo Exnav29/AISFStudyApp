@@ -287,14 +287,10 @@ def update_fill_in_the_blank_exercise():
 @login_required
 def generate_lesson_route():
     if request.method == 'POST':
-        pdf_name = request.form.get('pdf_name')
-        if pdf_name:
-            try:
-                lesson_content = generate_lesson(pdf_name)
-                return render_template('lesson.html', lesson_content=lesson_content, pdf_name=pdf_name)
-            except Exception as e:
-                return render_template('lesson.html', error=str(e))
+        try:
+            lesson_content = generate_lesson()
+            return render_template('lesson.html', lesson_content=json.loads(lesson_content))
+        except Exception as e:
+            return render_template('generate_lesson.html', error=str(e))
     
-    pdf_dir = os.path.join(app.static_folder, 'pdfs')
-    pdfs = [f for f in os.listdir(pdf_dir) if f.endswith('.pdf')]
-    return render_template('generate_lesson.html', pdfs=pdfs)
+    return render_template('generate_lesson.html')
