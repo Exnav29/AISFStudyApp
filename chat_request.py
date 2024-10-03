@@ -2,6 +2,7 @@ import os
 import PyPDF2
 from openai import OpenAI
 import logging
+from io import BytesIO
 
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
@@ -12,14 +13,29 @@ openai_client = OpenAI(api_key=OPENAI_API_KEY)
 def extract_pdf_content(pdf_path):
     try:
         with open(pdf_path, 'rb') as file:
-            reader = PyPDF2.PdfReader(file)
+            reader = PyPDF2.PdfReader(file, strict=False)
             content = ""
             for page in reader.pages:
                 content += page.extract_text()
         return content
     except PyPDF2.errors.PdfReadError as e:
         logger.error(f"Error reading PDF {pdf_path}: {str(e)}")
-        raise ValueError(f"Error reading PDF: {str(e)}")
+        if "EOF marker not found" in str(e):
+            logger.warning(f"Attempting to repair PDF {pdf_path}")
+            try:
+                with open(pdf_path, 'rb') as file:
+                    content = file.read()
+                fixed_content = content.replace(b'\x0d', b'\x0a')
+                reader = PyPDF2.PdfReader(BytesIO(fixed_content), strict=False)
+                content = ""
+                for page in reader.pages:
+                    content += page.extract_text()
+                return content
+            except Exception as repair_error:
+                logger.error(f"Failed to repair PDF {pdf_path}: {str(repair_error)}")
+                raise ValueError(f"Failed to read or repair PDF: {str(repair_error)}")
+        else:
+            raise ValueError(f"Error reading PDF: {str(e)}")
     except Exception as e:
         logger.error(f"Unexpected error reading PDF {pdf_path}: {str(e)}")
         raise ValueError(f"Unexpected error reading PDF: {str(e)}")
