@@ -3,7 +3,7 @@ from flask_login import login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash
 from app import app, db
 from models import User, Quiz, Exam, LearningItem, Flashcard, MatchingExercise, SortingExercise, FillInTheBlankExercise
-from chat_request import generate_quiz_questions
+from chat_request import generate_quiz_questions, generate_lesson
 import json
 from datetime import datetime
 import os
@@ -282,3 +282,19 @@ def update_fill_in_the_blank_exercise():
         db.session.commit()
         return jsonify({'success': True})
     return jsonify({'success': False}), 404
+
+@app.route('/generate_lesson', methods=['GET', 'POST'])
+@login_required
+def generate_lesson_route():
+    if request.method == 'POST':
+        pdf_name = request.form.get('pdf_name')
+        if pdf_name:
+            try:
+                lesson_content = generate_lesson(pdf_name)
+                return render_template('lesson.html', lesson_content=lesson_content, pdf_name=pdf_name)
+            except Exception as e:
+                return render_template('lesson.html', error=str(e))
+    
+    pdf_dir = os.path.join(app.static_folder, 'pdfs')
+    pdfs = [f for f in os.listdir(pdf_dir) if f.endswith('.pdf')]
+    return render_template('generate_lesson.html', pdfs=pdfs)

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Generate AI-Powered Lesson</h1>
+<form method="POST">
+    <label for="pdf-select">Choose a PDF for lesson generation:</label>
+    <select id="pdf-select" name="pdf_name" required>
+        <option value="">Select a PDF</option>
+        {% for pdf in pdfs %}
+        <option value="{{ pdf }}">{{ pdf }}</option>
+        {% endfor %}
+    </select>
+    <button type="submit">Generate Lesson</button>
+</form>
+{% endblock %}

@@ -40,3 +40,28 @@ def generate_quiz_questions(pdf_name: str, num_questions: int = 5) -> list:
     if not content:
         raise ValueError("OpenAI returned an empty response.")
     return content
+
+def generate_lesson(pdf_name: str) -> str:
+    pdf_path = os.path.join('static', 'pdfs', pdf_name)
+    content = extract_pdf_content(pdf_path)
+    
+    prompt = f"""Generate a comprehensive lesson based on the following content from {pdf_name}. 
+    The lesson should include:
+    1. An introduction to the topic
+    2. Key concepts and definitions
+    3. Detailed explanations of important points
+    4. Examples or case studies to illustrate the concepts
+    5. A summary of the main takeaways
+
+    Format the response as HTML, using appropriate tags for headings, paragraphs, lists, etc.
+    
+    Content: {content[:4000]}"""  # Limiting content to 4000 characters to avoid token limit
+
+    response = openai_client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": prompt}],
+    )
+    lesson_content = response.choices[0].message.content
+    if not lesson_content:
+        raise ValueError("OpenAI returned an empty response.")
+    return lesson_content

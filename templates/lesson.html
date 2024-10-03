@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>AI-Generated Lesson: {{ pdf_name }}</h1>
+{% if error %}
+<p class="error">{{ error }}</p>
+{% else %}
+<div class="lesson-content">
+    {{ lesson_content|safe }}
+</div>
+{% endif %}
+<a href="{{ url_for('generate_lesson_route') }}" class="btn">Generate Another Lesson</a>
+{% endblock %}
