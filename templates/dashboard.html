@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Welcome, {{ current_user.username }}!</h1>
+<h2>Your Progress</h2>
+<div id="progress-bar">
+    <div id="progress" style="width: {{ current_user.progress }}%"></div>
+</div>
+<p>{{ current_user.progress }}% complete</p>
+
+<h2>Recent Quizzes</h2>
+<ul id="recent-quizzes"></ul>
+
+<h2>Recent Exams</h2>
+<ul id="recent-exams"></ul>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Fetch and display recent quizzes and exams
+    fetch('/get_recent_activities')
+        .then(response => response.json())
+        .then(data => {
+            const quizzesList = document.getElementById('recent-quizzes');
+            const examsList = document.getElementById('recent-exams');
+            
+            data.quizzes.forEach(quiz => {
+                const li = document.createElement('li');
+                li.textContent = `Date: ${new Date(quiz.date).toLocaleDateString()} - Score: ${quiz.score}%`;
+                quizzesList.appendChild(li);
+            });
+            
+            data.exams.forEach(exam => {
+                const li = document.createElement('li');
+                li.textContent = `Date: ${new Date(exam.date).toLocaleDateString()} - Score: ${exam.score}%`;
+                examsList.appendChild(li);
+            });
+        });
+});
+</script>
+{% endblock %}

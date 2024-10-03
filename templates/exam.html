@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Timed Exam</h1>
+<div id="timer">Time remaining: <span id="time">30:00</span></div>
+<div id="exam-container">
+    <div id="question-container"></div>
+    <button id="submit-exam" style="display: none;">Submit Exam</button>
+</div>
+<div id="result-container" style="display: none;">
+    <h2>Exam Complete</h2>
+    <p>Your score: <span id="exam-score"></span>%</p>
+</div>
+
+<script>
+let questions = [];
+let answers = [];
+let timeLeft = 30 * 60; // 30 minutes in seconds
+
+document.addEventListener('DOMContentLoaded', function() {
+    fetchExamQuestions();
+    startTimer();
+
+    document.getElementById('submit-exam').addEventListener('click', submitExam);
+});
+
+function fetchExamQuestions() {
+    fetch('/generate_quiz', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content: 'A/AISF certification exam topics', num_questions: 25 }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        questions = data.questions;
+        showExamQuestions();
+    });
+}
+
+function showExamQuestions() {
+    const container = document.getElementById('question-container');
+    container.innerHTML = questions.map((question, index) => `
+        <div class="question">
+            <h3>Question ${index + 1}</h3>
+            <p>${question.question}</p>
+            ${getAnswerHTML(question, index)}
+        </div>
+    `).join('');
+    document.getElementById('submit-exam').style.display = 'block';
+}
+
+function getAnswerHTML(question, index) {
+    if (question.type === 'multiple-choice') {
+        return question.options.map((option, optionIndex) => `
+            <label>
+                <input type="radio" name="answer-${index}" value="${optionIndex}">
+                ${option}
+            </label>
+        `).join('');
+    } else if (question.type === 'true-false') {
+        return `
+            <label><input type="radio" name="answer-${index}" value="true"> True</label>
+            <label><input type="radio" name="answer-${index}" value="false"> False</label>
+        `;
+    } else if (question.type === 'fill-in-the-blank') {
+        return `<input type="text" name="answer-${index}">`;
+    }
+}
+
+function startTimer() {
+    const timerElement = document.getElementById('time');
+    const timer = setInterval(() => {
+        const minutes = Math.floor(timeLeft / 60);
+        const seconds = timeLeft % 60;
+        timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        
+        if (timeLeft <= 0) {
+            clearInterval(timer);
+            submitExam();
+        } else {
+            timeLeft--;
+        }
+    }, 1000);
+}
+
+function submitExam() {
+    clearInterval(timer);
+    const score = calculateScore();
+    document.getElementById('exam-container').style.display = 'none';
+    document.getElementById('result-container').style.display = 'block';
+    document.getElementById('exam-score').textContent = score.toFixed(2);
+
+    fetch('/submit_exam', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ score: score }),
+    });
+
+    updateProgress(score / 100);
+}
+
+function calculateScore() {
+    let correctAnswers = 0;
+    questions.forEach((question, index) => {
+        const userAnswer = getUserAnswer(question, index);
+        if (userAnswer === question.answer) {
+            correctAnswers++;
+        }
+    });
+    return (correctAnswers / questions.length) * 100;
+}
+
+function getUserAnswer(question, index) {
+    if (question.type === 'multiple-choice' || question.type === 'true-false') {
+        return document.querySelector(`input[name="answer-${index}"]:checked`)?.value;
+    } else if (question.type === 'fill-in-the-blank') {
+        return document.querySelector(`input[name="answer-${index}"]`).value;
+    }
+}
+
+function updateProgress(progress) {
+    fetch('/update_progress', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ progress: progress }),
+    });
+}
+</script>
+{% endblock %}
