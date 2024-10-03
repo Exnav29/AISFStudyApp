@@ -101,37 +101,10 @@ def update_progress():
     db.session.commit()
     return jsonify({'success': True})
 
-@app.route('/learning_items', methods=['GET'])
+@app.route('/spaced_repetition')
 @login_required
-def get_learning_items():
-    items = LearningItem.query.filter_by(user_id=current_user.id).all()
-    return jsonify([{
-        'id': item.id,
-        'content': item.content,
-        'difficulty': item.difficulty,
-        'next_review': item.next_review.isoformat()
-    } for item in items])
-
-@app.route('/add_learning_item', methods=['POST'])
-@login_required
-def add_learning_item():
-    content = request.json.get('content')
-    item = LearningItem(user_id=current_user.id, content=content)
-    db.session.add(item)
-    db.session.commit()
-    return jsonify({'success': True, 'id': item.id})
-
-@app.route('/update_learning_item', methods=['POST'])
-@login_required
-def update_learning_item():
-    item_id = request.json.get('id')
-    performance = request.json.get('performance')
-    item = LearningItem.query.get(item_id)
-    if item and item.user_id == current_user.id:
-        item.update_review_schedule(performance)
-        db.session.commit()
-        return jsonify({'success': True})
-    return jsonify({'success': False}), 404
+def spaced_repetition():
+    return render_template('spaced_repetition.html')
 
 @app.route('/get_due_items', methods=['GET'])
 @login_required
@@ -145,6 +118,18 @@ def get_due_items():
         'content': item.content,
         'difficulty': item.difficulty
     } for item in due_items])
+
+@app.route('/update_learning_item', methods=['POST'])
+@login_required
+def update_learning_item():
+    item_id = request.json.get('id')
+    performance = request.json.get('performance')
+    item = LearningItem.query.get(item_id)
+    if item and item.user_id == current_user.id:
+        item.update_review_schedule(performance)
+        db.session.commit()
+        return jsonify({'success': True})
+    return jsonify({'success': False}), 404
 
 @app.route('/flashcards')
 @login_required
