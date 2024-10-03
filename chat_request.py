@@ -33,12 +33,13 @@ def extract_pdf_content(pdf_path):
                 return content
             except Exception as repair_error:
                 logger.error(f"Failed to repair PDF {pdf_path}: {str(repair_error)}")
-                raise ValueError(f"Failed to read or repair PDF: {str(repair_error)}")
+                return ""  # Return empty string instead of raising an exception
         else:
-            raise ValueError(f"Error reading PDF: {str(e)}")
+            logger.error(f"Unhandled PdfReadError for {pdf_path}: {str(e)}")
+            return ""  # Return empty string for other PDF read errors
     except Exception as e:
         logger.error(f"Unexpected error reading PDF {pdf_path}: {str(e)}")
-        raise ValueError(f"Unexpected error reading PDF: {str(e)}")
+        return ""  # Return empty string for any other unexpected errors
 
 def extract_exam_objectives(pdf_path):
     try:
@@ -75,8 +76,13 @@ def generate_lesson() -> dict:
         all_content = ""
         for pdf_file in pdf_files:
             pdf_path = os.path.join(pdf_dir, pdf_file)
-            all_content += extract_pdf_content(pdf_path) + "\n\n"
+            content = extract_pdf_content(pdf_path)
+            if content:  # Only add non-empty content
+                all_content += content + "\n\n"
         
+        if not all_content:
+            raise ValueError("No content could be extracted from the PDFs.")
+
         prompt = f"""Generate a comprehensive lesson based on the following content from multiple PDFs. 
         Organize the lesson according to these exam objectives: {objectives}
 
